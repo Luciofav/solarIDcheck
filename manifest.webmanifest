@@ -1,0 +1,13 @@
+{
+  "name": "solarIDcheck",
+  "short_name": "solarIDcheck",
+  "description": "Verifica seriali pannelli fotovoltaici tramite barcode",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f3f5f4",
+  "theme_color": "#0f6b4f",
+  "lang": "it",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

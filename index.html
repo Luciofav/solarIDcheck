@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f6b4f">
+  <meta name="description" content="Verifica dei numeri di serie dei pannelli fotovoltaici tramite barcode">
+  <title>solarIDcheck</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ========== ACCESSO ========== -->
+<section id="view-lock" class="view">
+  <header class="brand">
+    <img src="icon.svg" alt="" width="40" height="40">
+    <div>
+      <h1>solarIDcheck</h1>
+      <p class="muted">Verifica seriali pannelli fotovoltaici</p>
+    </div>
+  </header>
+  <form id="lock-form" class="card">
+    <label class="field">
+      <span>Chiave di accesso</span>
+      <input id="lock-key" type="password" autocomplete="current-password" autofocus>
+    </label>
+    <p id="lock-err" class="err-msg" hidden>Chiave non corretta.</p>
+    <button class="btn primary big" type="submit">Entra</button>
+  </form>
+</section>
+
+<!-- ========== SETUP ========== -->
+<section id="view-setup" class="view" hidden>
+  <header class="brand">
+    <img src="icon.svg" alt="" width="40" height="40">
+    <div>
+      <h1>solarIDcheck</h1>
+      <p class="muted">Verifica seriali pannelli fotovoltaici</p>
+    </div>
+  </header>
+
+  <div id="resume-card" class="card warn" hidden>
+    <h2>Sessione in corso</h2>
+    <p id="resume-info"></p>
+    <div class="row">
+      <button id="btn-resume" class="btn primary">Riprendi</button>
+      <button id="btn-discard" class="btn ghost">Elimina e ricomincia</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <label class="field">
+      <span>Nome impianto <b class="req">*</b></span>
+      <input id="plant" type="text" autocomplete="off" placeholder="Es. Impianto Rossi – Campo A">
+    </label>
+
+    <div class="field">
+      <span>File impianto (opzionale)</span>
+      <p class="hint">Excel con le colonne <b>N° SERIALE</b> e <b>MODELLO</b>. Se non lo carichi, puoi comunque scansionare.</p>
+      <label class="file-drop">
+        <input id="excel" type="file" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv">
+        <span id="excel-label">Scegli file…</span>
+      </label>
+      <div id="excel-preview" class="preview" hidden></div>
+    </div>
+
+    <button id="btn-start" class="btn primary big" disabled>Inizia scansione</button>
+  </div>
+
+  <p class="foot muted">I dati restano su questo dispositivo. Nessun invio a server.</p>
+</section>
+
+<!-- ========== SCAN ========== -->
+<section id="view-scan" class="view" hidden>
+  <div class="scanbar">
+    <div class="scanbar-title">
+      <strong id="scan-plant"></strong>
+      <span id="scan-mode" class="muted small"></span>
+    </div>
+    <button id="btn-finish" class="btn primary sm">Termina</button>
+  </div>
+
+  <div class="camera">
+    <video id="video" playsinline muted autoplay></video>
+    <canvas id="overlay"></canvas>
+    <div class="reticle"><span></span></div>
+    <div id="cam-msg" class="cam-msg">Avvio fotocamera…</div>
+    <div class="cam-tools">
+      <button id="btn-torch" class="round" title="Torcia" aria-label="Torcia" hidden>
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M7 2h10v4l-3 4v12h-4V10L7 6z"/></svg>
+      </button>
+      <button id="btn-pause" class="round" title="Pausa" aria-label="Pausa">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <div class="counters">
+    <div><b id="c-scanned">0</b><span>scansionati</span></div>
+    <div id="c-expected-box"><b id="c-expected">–</b><span>attesi</span></div>
+    <div class="ok"><b id="c-ok">0</b><span>in elenco</span></div>
+    <div class="bad"><b id="c-unknown">0</b><span>non in elenco</span></div>
+  </div>
+  <div id="progress" class="progress" hidden><i></i></div>
+
+  <form id="manual-form" class="manual">
+    <input id="manual-input" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" placeholder="Inserisci seriale a mano">
+    <button class="btn" type="submit">Aggiungi</button>
+  </form>
+
+  <div class="list-head">
+    <h3>Ultime letture</h3>
+    <span id="list-count" class="muted small"></span>
+  </div>
+  <ul id="scan-list" class="scan-list"></ul>
+</section>
+
+<!-- ========== REPORT ========== -->
+<section id="view-report" class="view" hidden>
+  <div class="scanbar">
+    <div class="scanbar-title">
+      <strong>Report – <span id="rep-plant"></span></strong>
+      <span id="rep-date" class="muted small"></span>
+    </div>
+    <button id="btn-back" class="btn sm">Torna a scansionare</button>
+  </div>
+
+  <div id="rep-summary" class="summary"></div>
+
+  <div id="rep-load-excel" class="card" hidden>
+    <p>Non hai caricato il file impianto: carichi ora per confrontare le scansioni?</p>
+    <label class="file-drop">
+      <input id="excel-late" type="file" accept=".xlsx,.xls,.csv">
+      <span>Carica file impianto…</span>
+    </label>
+  </div>
+
+  <div class="card">
+    <h2>Esporta</h2>
+    <div class="row wrap">
+      <button id="dl-scans" class="btn primary">Scarica scansioni (.csv)</button>
+      <button id="dl-issues" class="btn primary">Scarica incongruenze (.csv)</button>
+    </div>
+    <div class="row wrap" id="share-row" hidden>
+      <button id="share-files" class="btn">Condividi entrambi i file</button>
+    </div>
+  </div>
+
+  <div id="rep-models"></div>
+  <div id="rep-issues"></div>
+
+  <div class="card">
+    <button id="btn-new" class="btn danger">Chiudi sessione e inizia nuova giornata</button>
+  </div>
+</section>
+
+<script src="vendor/xlsx.full.min.js"></script>
+<script src="vendor/barcode-detector.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
